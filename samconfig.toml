@@ -1,0 +1,12 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "demo-sam-remote-invoke"
+resolve_s3 = true
+s3_prefix = "demo-sam-remote-invoke"
+region = "ap-northeast-1"
+profile = "devserverless"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "DDBTABLE=\"demo-sam-remote-invoke-table\""
+image_repositories = []

@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  DDBTABLE:
+    Type: String
+    Default: 'demo-sam-remote-invoke-table'
+Globals:
+  Function:
+    Timeout: 10
+    Environment:
+      Variables:
+        DDB_TABLE: !Ref DDBTABLE
+    Tracing: Active
+    Layers:
+      - !Ref DemoXRayLambdaLayer
+  Api:
+    TracingEnabled: True
+Resources:
+  DemoSamRemoteInvokeFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: 'demo-sam-remote-invoke-function'
+      CodeUri: demo-sam-remote-invoke-function/
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Role: !GetAtt DemoSamRemoteInvokeFunctionRole.Arn
+
+  DemoXRayLambdaLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: 'DemoXRayLambdaLayer'
+      CompatibleRuntimes:
+        - python3.8
+      ContentUri: demo_xray_layer/xray-python.zip
+  DemoSamRemoteInvokeFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: "sts:AssumeRole"
+            Principal: 
+              Service: "lambda.amazonaws.com"
+      Policies:
+        - PolicyName: "my-demo-xray-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "logs:*"
+                  - "dynamodb:*"
+                  - "xray:PutTraceSegments"
+                  - "xray:PutTelemetryRecords"
+                Resource: "*"
+  DemoXRayTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: !Ref DDBTABLE
+      PrimaryKey:
+        Name: user_id
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1  
+Outputs:
+  DemoSamRemoteInvokeFunction:
+    Description: "DemoSamRemoteInvokeFunction ARN"
+    Value: !GetAtt DemoSamRemoteInvokeFunction.Arn
+  DemoSamRemoteInvokeFunctionRole:
+    Description: "Implicit IAM Role created for DemoSamRemoteInvokeFunction"
+    Value: !GetAtt DemoSamRemoteInvokeFunctionRole.Arn
